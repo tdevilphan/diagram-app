@@ -1,0 +1,27 @@
+.group-element .handle {
+    display: none;
+}
+.group-element .r-resize, .group-element .l-resize {
+    cursor: e-resize;
+}
+.group-element .b-resize, .group-element .t-resize {
+    cursor: n-resize;
+}
+.group-element .tr-resize {
+    cursor: ne-resize;
+}
+.group-element .tl-resize {
+    cursor: nw-resize;
+}
+.group-element .bl-resize {
+    cursor: ne-resize;
+}
+.group-element .br-resize {
+    cursor: nw-resize;
+}
+.group-element:hover .handle {
+    display: block;
+}
+g {
+    pointer-events: bounding-box;
+}
