@@ -293,6 +293,8 @@ function createElement(x, y, width, height = null, borderRadius, fill, strokeWid
       element.setAttributeNS(null, "points", `${x + (width / 2)} ${y}, ${x + width} ${y + (width / 2)}, ${x + (width / 2)} ${y + width}, ${x} ${y + (width / 2)}`);
     } else if (type === 'square') {
       element.setAttributeNS(null, "points", `${x} ${y}, ${x + width} ${y}, ${x + width} ${y + height}, ${x} ${y + height}`);
+      element.setAttributeNS(null, "width", '100%');
+      element.setAttributeNS(null, "height", '100%');
     }
   }
   element.setAttributeNS(null, "rx", borderRadius);
@@ -307,7 +309,9 @@ function createElement(x, y, width, height = null, borderRadius, fill, strokeWid
   groupElement.setAttributeNS(null, "id", `group-${id}`);
   groupElement.setAttributeNS(null, "class", 'group-element');
   svgGroupElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svgGroupElement.setAttributeNS(null, 'viewBox', `0 0 ${width, height}`);
+  svgGroupElement.setAttributeNS(null, 'viewBox', `0 0 ${width + 7} ${height + 7}`);
+  svgGroupElement.setAttributeNS(null, 'width', `${width + 7}px`);
+  svgGroupElement.setAttributeNS(null, 'height', `${height + 7}px`);
   const resize = 
       '<g data-id="' + id + '" data-resize="tl" class="handle tl-resize" transform="translate(0 0)"><rect x="3" y="3" width="5" height="5" /></g>' +
       '<g data-id="' + id + '" data-resize="br" class="handle br-resize" transform="translate(50 50)"><rect x="3" y="3" width="5" height="5" /></g>' +
@@ -336,7 +340,7 @@ function createElement(x, y, width, height = null, borderRadius, fill, strokeWid
   element.addEventListener('mouseleave', () => element.setAttribute('fill', fill));
 }
 
-function startResize() {
+function startResize(e) {
   const elementId = this.dataset.id;
   const typeResize = this.dataset.resize;
   const element = document.querySelector(`#${elementId}`);
@@ -345,11 +349,13 @@ function startResize() {
     x: element.getBoundingClientRect().left,
     y: element.getBoundingClientRect().top,
     w: element.getBoundingClientRect().width,
-    h: element.getBoundingClientRect().height
+    h: element.getBoundingClientRect().height,
+    currentX: e.clientX,
+    currentY: e.clientY
   }
-  const starResizeFunction = (e) => resizeElement(e, elementData, typeResize);
-  window.addEventListener( 'mousemove', starResizeFunction );
-  window.addEventListener( 'mouseup', (e) => {window.removeEventListener( 'mousemove', starResizeFunction )} );
+  const resizeFunction = (e) => resizeElement(e, elementData, typeResize);
+  window.addEventListener( 'mousemove', resizeFunction );
+  window.addEventListener( 'mouseup', (e) => {window.removeEventListener( 'mousemove', resizeFunction )} );
   
 }
 
@@ -357,6 +363,13 @@ function resizeElement(event, elementData, typeResize) {
   const element = document.querySelector(`#${elementData.id}`);
   const transform = element.getAttribute("transform");
   const parentElement = element.parentElement;
+  const currentX = elementData.currentX;
+  const currentY = elementData.currentY;
+  const viewBox = parentElement.getAttribute("viewBox");
+  const currentW = Number.parseFloat(viewBox ? viewBox.split(' ')[2] : 0);
+  const currentH = Number.parseFloat(viewBox ? viewBox.split(' ')[3] : 0);
+  const newW = (event.clientX - currentX);
+  
   const handleButtons = {
     tlButton: parentElement.querySelector('.tl-resize'),
     brButton: parentElement.querySelector('.br-resize'),
@@ -367,13 +380,9 @@ function resizeElement(event, elementData, typeResize) {
     blButton: parentElement.querySelector('.bl-resize'),
     lButton: parentElement.querySelector('.l-resize'),
   }
-  const newX = elementData.w + (event.clientX - (elementData.x + elementData.w));
-  const newY = elementData.h + (event.clientY - (elementData.y + elementData.h));
-  const newW = element.getBoundingClientRect().width;
-  const newH = element.getBoundingClientRect().height;
-  if (newW < 5 || newH < 5) {
-    return;
-  }
+  // if (newW < 5 || newH < 5) {
+  //   return;
+  // }
   switch (typeResize) {
     case 't':
       element.setAttributeNS(null, 'points', `
@@ -389,17 +398,20 @@ function resizeElement(event, elementData, typeResize) {
       handleButtons.lButton.setAttribute('transform', `translate(0 ${(newH / 2) + newY})`);
       break;
     case 'r':
-      element.setAttributeNS(null, 'points', `
-        ${DEFAULT_X} ${DEFAULT_Y},
-        ${DEFAULT_X + newX} ${DEFAULT_Y},
-        ${DEFAULT_X + newX} ${DEFAULT_Y + elementData.h},
-        ${DEFAULT_X} ${DEFAULT_Y + elementData.h}
-        `);
-      handleButtons.bButton.setAttribute('transform', `translate(${newW / 2} ${newH})`);
-      handleButtons.tButton.setAttribute('transform', `translate(${newW / 2} 0)`);
-      handleButtons.brButton.setAttribute('transform', `translate(${newX} ${elementData.h })`);
-      handleButtons.rButton.setAttribute('transform', `translate(${newX} ${elementData.h / 2})`);
-      handleButtons.trButton.setAttribute('transform', `translate(${newX} 0)`);
+      // element.setAttributeNS(null, 'points', `
+      //   ${DEFAULT_X} ${DEFAULT_Y},
+      //   ${DEFAULT_X + newX} ${DEFAULT_Y},
+      //   ${DEFAULT_X + newX} ${DEFAULT_Y + elementData.h},
+      //   ${DEFAULT_X} ${DEFAULT_Y + elementData.h}
+      //   `);
+      // handleButtons.bButton.setAttribute('transform', `translate(${newW / 2} ${newH})`);
+      // handleButtons.tButton.setAttribute('transform', `translate(${newW / 2} 0)`);
+      // handleButtons.brButton.setAttribute('transform', `translate(${newX} ${elementData.h })`);
+      // handleButtons.rButton.setAttribute('transform', `translate(${newX} ${elementData.h / 2})`);
+      // handleButtons.trButton.setAttribute('transform', `translate(${newX} 0)`);
+      console.log(currentW, newW);
+      
+      parentElement.setAttributeNS(null, 'viewBox', `0 0 ${currentW - newW} ${currentH}`);
       break;
     case 'b':
       element.setAttributeNS(null, 'points', `
