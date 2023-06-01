@@ -401,7 +401,7 @@ function resizeElement(event, elementData, handleData, typeResize) {
       break;
     case 'r':
       element.setAttributeNS(null, 'points', `
-        ${DEFAULT_X} ${DEFAULT_Y},
+        ${elementTL.split(' ')[0]} ${Number.parseInt(elementTL.split(' ')[1]) + diffY},
         ${DEFAULT_X + newX} ${DEFAULT_Y},
         ${DEFAULT_X + newX} ${DEFAULT_Y + elementData.h},
         ${DEFAULT_X} ${DEFAULT_Y + elementData.h}
