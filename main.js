@@ -230,13 +230,18 @@ function moving(obj, svg) {
       requestAnimationFrame(() => {
         const deltaX = event.clientX - previousX;
         const deltaY = event.clientY - previousY;
+        const points = obj.getAttribute("points");
+        const [tl, tr, br, bl] = points.split(',');
+        obj.setAttributeNS(null, 'points', `${Number.parseInt(tl.split(' ')[0]) + deltaX} ${Number.parseInt(tl.split(' ')[1]) + deltaY},${Number.parseInt(tr.split(' ')[0]) + deltaX} ${Number.parseInt(tr.split(' ')[1]) + deltaY},${Number.parseInt(br.split(' ')[0]) + deltaX} ${Number.parseInt(br.split(' ')[1]) + deltaY},${Number.parseInt(bl.split(' ')[0]) + deltaX} ${Number.parseInt(bl.split(' ')[1]) + deltaY}`);
         const parentElement = obj.parentElement;
-        const x = parentElement.getAttribute("x") ?? 0;
-        const y = parentElement.getAttribute("y") ?? 0;
-        // const translateX = Number.parseFloat(transform ? transform.match(/translate\(([^)]+)\)/)[1].split(',')[0] : 0);
-        // const translateY = Number.parseFloat(transform ? transform.match(/translate\(([^)]+)\)/)[1].split(',')[1] : 0);
-        parentElement.setAttributeNS(null, "x", `${Number.parseInt(x) + deltaX}`);
-        parentElement.setAttributeNS(null, "y", `${Number.parseInt(y) + deltaY}`);
+        const handleButtons = parentElement.querySelectorAll('.handle');
+        handleButtons.forEach(handleButton => {
+          const handleX = handleButton.getAttribute('x');
+          const handleY = handleButton.getAttribute('y');
+          handleButton.setAttributeNS(null, 'x', `${Number.parseInt(handleX) + deltaX}`);
+          handleButton.setAttributeNS(null, 'y', `${Number.parseInt(handleY) + deltaY}`);
+        })
+        
         previousX = event.clientX;
         previousY = event.clientY;
         // const x = translateX + deltaX;
@@ -303,18 +308,15 @@ function createElement(x, y, width, height = null, borderRadius, fill, strokeWid
   svgGroupElement = document.createElementNS("http://www.w3.org/2000/svg", "g");
   svgGroupElement.setAttributeNS(null, "id", `group-${id}`);
   svgGroupElement.setAttributeNS(null, "class", 'group-element');
-  svgGroupElement.setAttributeNS(null, "x", 0);
-  svgGroupElement.setAttributeNS(null, "y", 0);
-  svgGroupElement.setAttributeNS(null, "viewBox", `0 0 ${GRID_WIDTH} ${GRID_HEIGHT}`);
   const resize = 
-      '<g data-id="' + id + '" data-resize="tl" class="handle tl-resize" transform="translate(3 3)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="br" class="handle br-resize" transform="translate(53 53)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="t" class="handle t-resize" transform="translate(28 3)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="tr" class="handle tr-resize" transform="translate(53 3)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="r" class="handle r-resize" transform="translate(53 28)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="b" class="handle b-resize" transform="translate(28 53)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="bl" class="handle bl-resize" transform="translate(3 53)"><rect width="5" height="5" /></g>' +
-      '<g data-id="' + id + '" data-resize="l" class="handle l-resize" transform="translate(3 28)"><rect width="5" height="5" /></g>'
+      '<rect data-id="' + id + '" data-resize="tl" class="handle tl-resize" x="3" y="3" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="t" class="handle t-resize" x="28" y="3" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="tr" class="handle tr-resize" x="53" y="3" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="r" class="handle r-resize" x="53" y="28" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="br" class="handle br-resize" x="53" y="53" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="b" class="handle b-resize" x="28" y="53" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="bl" class="handle bl-resize" x="3" y="53" width="5" height="5" />' +
+      '<rect data-id="' + id + '" data-resize="l" class="handle l-resize" x="3" y="28" width="5" height="5" />'
       ;
 
   svgGroupElement.insertAdjacentHTML( 'beforeend', resize);
@@ -337,20 +339,8 @@ function startResize(e) {
   const elementId = this.dataset.id;
   const typeResize = this.dataset.resize;
   const element = document.querySelector(`#${elementId}`);
-  const parentElement = element.parentElement;
-  const viewBox = parentElement.getAttribute('viewBox');
-  const [minX, minY, parentWidth, parentHeight] = viewBox.split(' ');
-  const parentViewBoxData = {
-    minX: minX,
-    minY: minY,
-    width: parentWidth,
-    height: parentHeight
-  }
   const points = element.getAttribute("points");
-  const tl = points.split(',')[0];
-  const tr = points.split(',')[1];
-  const br = points.split(',')[2];
-  const bl = points.split(',')[3];
+  const [tl, tr, br, bl] = points.split(',');
   const elementData = {
     id: elementId,
     tl: tl,
@@ -360,34 +350,28 @@ function startResize(e) {
     initialMouseX: e.clientX,
     initialMouseY: e.clientY,
   }
-  const resizeFunction = (e) => resizeElement(e, elementData, parentViewBoxData, typeResize);
+  const parentElement = element.parentElement;
+  const handleButtons = parentElement.querySelectorAll('.handle');
+  const handleData = [];
+  handleButtons.forEach(handleButton => {
+    handleData.push([handleButton.getAttribute('x'), handleButton.getAttribute('y')]);
+  })
+  const resizeFunction = (e) => resizeElement(e, elementData, handleData, typeResize);
   window.addEventListener( 'mousemove', resizeFunction );
   window.addEventListener( 'mouseup', (e) => {window.removeEventListener( 'mousemove', resizeFunction )} );
   
 }
 
-function resizeElement(event, elementData, parentViewBoxData, typeResize) {
+function resizeElement(event, elementData, handleData, typeResize) {
   const element = document.querySelector(`#${elementData.id}`);
   const mouseX = event.clientX;
   const mouseY = event.clientY;
   const diffX = mouseX - elementData.initialMouseX;
   const diffY = mouseY - elementData.initialMouseY;
   const parentElement = element.parentElement;
-  // const newX = elementData.w + (event.clientX - (elementData.left + elementData.w));
-  // const newY = elementData.h + (event.clientY - (elementData.top + elementData.h));
   const newW = element.getBoundingClientRect().width;
   const newH = element.getBoundingClientRect().height;
   
-  const handleButtons = {
-    tlButton: parentElement.querySelector('.tl-resize'),
-    brButton: parentElement.querySelector('.br-resize'),
-    tButton: parentElement.querySelector('.t-resize'),
-    trButton: parentElement.querySelector('.tr-resize'),
-    rButton: parentElement.querySelector('.r-resize'),
-    bButton: parentElement.querySelector('.b-resize'),
-    blButton: parentElement.querySelector('.bl-resize'),
-    lButton: parentElement.querySelector('.l-resize'),
-  }
   if (newW < 5 || newH < 5) {
     return;
   }
@@ -395,15 +379,25 @@ function resizeElement(event, elementData, parentViewBoxData, typeResize) {
   const elementTR = elementData.tr;
   const elementBR = elementData.br;
   const elementBL = elementData.bl;
+  const handleButtons = {
+    tlButton: parentElement.querySelector('.tl-resize'),
+    tButton: parentElement.querySelector('.t-resize'),
+    trButton: parentElement.querySelector('.tr-resize'),
+    rButton: parentElement.querySelector('.r-resize'),
+    brButton: parentElement.querySelector('.br-resize'),
+    bButton: parentElement.querySelector('.b-resize'),
+    blButton: parentElement.querySelector('.bl-resize'),
+    lButton: parentElement.querySelector('.l-resize'),
+  }
+
   switch (typeResize) {
     case 't':
-      parentElement.setAttributeNS(null, 'viewBox', `${parentViewBoxData.minX} ${Number.parseInt(parentViewBoxData.minY) + diffY} ${parentViewBoxData.width} ${parentViewBoxData.height}`);
       element.setAttributeNS(null, 'points', `${elementTL.split(' ')[0]} ${Number.parseInt(elementTL.split(' ')[1]) + diffY},${elementTR.split(' ')[0]} ${Number.parseInt(elementTR.split(' ')[1]) + diffY},${elementBR.split(' ')[0]} ${elementBR.split(' ')[1]},${elementBL.split(' ')[0]} ${elementBL.split(' ')[1]}`);
-      // handleButtons.tButton.setAttribute('transform', `translate(${((elementData.translateX + newW) + elementData.translateX) / 2} ${elementData.translateY + newY})`);
-      // handleButtons.tlButton.setAttribute('transform', `translate(${elementData.translateX} ${elementData.translateY + newY})`);
-      // handleButtons.trButton.setAttribute('transform', `translate(${elementData.translateX + newW} ${elementData.translateY + newY})`);
-      // handleButtons.rButton.setAttribute('transform', `translate(${elementData.translateX + newW} ${((elementData.translateY + newY) + elementData.translateY) / 2})`);
-      // handleButtons.lButton.setAttribute('transform', `translate(${elementData.translateX} ${((elementData.translateY + newY) + elementData.translateY) / 2})`);
+      handleButtons.tlButton.setAttribute('y', `${Number.parseInt(handleData[0][1]) + diffY}`);
+      handleButtons.tButton.setAttribute('y', `${Number.parseInt(handleData[1][1]) + diffY}`);
+      handleButtons.trButton.setAttribute('y', `${Number.parseInt(handleData[2][1]) + diffY}`);
+      handleButtons.rButton.setAttribute('y', `${(Number.parseInt(handleButtons.trButton.getAttribute('y')) + Number.parseInt(handleButtons.brButton.getAttribute('y'))) / 2}`);
+      handleButtons.lButton.setAttribute('y', `${(Number.parseInt(handleButtons.tlButton.getAttribute('y')) + Number.parseInt(handleButtons.blButton.getAttribute('y'))) / 2}`);
       break;
     case 'r':
       element.setAttributeNS(null, 'points', `
@@ -600,7 +594,6 @@ function createGroup(x, y) {
 }
 
 /**************************Tạo MindMap**************************/
-
 
 
 
